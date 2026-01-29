@@ -1,0 +1,5 @@
+# Скопируйте в proxies.conf и заполните своими данными
+PROXY_IP="1.2.3.4"
+PROXY_PORT="8080"
+PROXY_USER="myuser"
+PROXY_PASS="mypassword"
