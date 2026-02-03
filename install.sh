@@ -75,7 +75,6 @@ acl to_proxy dstdomain .openai.com .api.openai.com
 acl to_proxy dstdomain .openrouter.ai
 acl to_proxy dstdomain .x.ai api.x.ai
 acl to_proxy dstdomain .googleapis.com
-acl to_proxy dstdomain api.ipify.org
 
 cache_peer_access paidproxy allow to_proxy
 cache_peer_access paidproxy deny all
@@ -106,16 +105,16 @@ if sudo systemctl is-active --quiet squid; then
     echo -e "  Удалённо:   http://${SERVER_IP}:3128"
     echo ""
 
-    # Проверка через api.ipify.org (роутится через parent proxy)
-    echo -e "${BLUE}Проверяю подключение через parent proxy...${NC}"
+    # Проверка подключения к Anthropic API через parent proxy
+    echo -e "${BLUE}Проверяю подключение к Anthropic API...${NC}"
 
-    DETECTED_IP=$(curl -s -x http://localhost:3128 --connect-timeout 10 https://api.ipify.org 2>/dev/null || echo "error")
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -x http://localhost:3128 --connect-timeout 10 https://api.anthropic.com 2>/dev/null || echo "000")
 
-    if [[ "$DETECTED_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo -e "${GREEN}Прокси работает! IP: ${DETECTED_IP}${NC}"
+    if [[ "$HTTP_CODE" != "000" && "$HTTP_CODE" != "403" ]]; then
+        echo -e "${GREEN}Прокси работает! Соединение с api.anthropic.com успешно (HTTP ${HTTP_CODE})${NC}"
     else
-        echo -e "${YELLOW}Не удалось определить IP. Проверьте вручную:${NC}"
-        echo "  curl -x http://localhost:3128 https://api.ipify.org"
+        echo -e "${YELLOW}Не удалось подключиться к Anthropic API. Проверьте вручную:${NC}"
+        echo "  curl -I -x http://localhost:3128 https://api.anthropic.com"
     fi
     echo ""
 else
