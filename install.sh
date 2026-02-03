@@ -46,11 +46,11 @@ PROXY_USER="${BASH_REMATCH[3]}"
 PROXY_PASS="${BASH_REMATCH[4]}"
 
 echo ""
-echo -e "${BLUE}Устанавливаю Squid (потребуется пароль sudo)...${NC}"
+echo -e "${BLUE}Устанавливаю Squid...${NC}"
 
-# Установка с sudo
-sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq squid
+# Установка с sudo (полностью тихая)
+sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" squid >/dev/null 2>&1
 
 echo -e "${BLUE}Создаю конфигурацию...${NC}"
 
@@ -87,20 +87,34 @@ EOF
 echo -e "${BLUE}Запускаю Squid...${NC}"
 
 sudo systemctl enable squid >/dev/null 2>&1
-sudo systemctl restart squid
+sudo systemctl restart squid >/dev/null 2>&1
 
 sleep 2
 
 if sudo systemctl is-active --quiet squid; then
+    # Получаем IP сервера
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+
     echo ""
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
     echo -e "${GREEN}║         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА!                      ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${YELLOW}Прокси работает: http://localhost:3128${NC}"
+    echo -e "${YELLOW}Прокси доступен:${NC}"
+    echo -e "  Локально:   http://localhost:3128"
+    echo -e "  Удалённо:   http://${SERVER_IP}:3128"
     echo ""
-    echo -e "${YELLOW}Проверка:${NC}"
-    echo "curl -x http://localhost:3128 https://api.anthropic.com"
+
+    # Автоматическая проверка
+    echo -e "${BLUE}Проверяю подключение к API...${NC}"
+
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -x http://localhost:3128 --connect-timeout 10 https://api.anthropic.com 2>/dev/null || echo "000")
+
+    if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "403" ]; then
+        echo -e "${GREEN}Прокси работает! (HTTP $HTTP_CODE)${NC}"
+    else
+        echo -e "${YELLOW}Внимание: получен код $HTTP_CODE (возможно проблема с parent proxy)${NC}"
+    fi
     echo ""
 else
     echo -e "${RED}Ошибка: Squid не запустился${NC}"

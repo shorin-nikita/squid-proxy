@@ -13,7 +13,7 @@
 ## Установка одной командой
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shorin-nikita/squid-proxy/main/install.sh | bash
+bash <(curl -fsSL https://raw.githubusercontent.com/shorin-nikita/squid-proxy/main/install.sh)
 ```
 
 Скрипт запросит данные прокси в формате:
@@ -65,5 +65,5 @@ sudo systemctl restart squid
 Для изменения данных прокси просто запустите установку заново:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/shorin-nikita/squid-proxy/main/install.sh | bash
+bash <(curl -fsSL https://raw.githubusercontent.com/shorin-nikita/squid-proxy/main/install.sh)
 ```
