@@ -75,6 +75,7 @@ acl to_proxy dstdomain .openai.com .api.openai.com
 acl to_proxy dstdomain .openrouter.ai
 acl to_proxy dstdomain .x.ai api.x.ai
 acl to_proxy dstdomain .googleapis.com
+acl to_proxy dstdomain api.ipify.org
 
 cache_peer_access paidproxy allow to_proxy
 cache_peer_access paidproxy deny all
@@ -105,20 +106,17 @@ if sudo systemctl is-active --quiet squid; then
     echo -e "  Удалённо:   http://${SERVER_IP}:3128"
     echo ""
 
-    # Проверка что squid отвечает
-    echo -e "${BLUE}Проверяю работу Squid...${NC}"
+    # Проверка через api.ipify.org (роутится через parent proxy)
+    echo -e "${BLUE}Проверяю подключение через parent proxy...${NC}"
 
-    if curl -s -x http://localhost:3128 --connect-timeout 5 https://httpbin.org/ip >/dev/null 2>&1; then
-        echo -e "${GREEN}Squid работает корректно!${NC}"
+    DETECTED_IP=$(curl -s -x http://localhost:3128 --connect-timeout 10 https://api.ipify.org 2>/dev/null || echo "error")
+
+    if [[ "$DETECTED_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo -e "${GREEN}Прокси работает! IP: ${DETECTED_IP}${NC}"
     else
-        echo -e "${YELLOW}Внимание: проверьте подключение вручную${NC}"
+        echo -e "${YELLOW}Не удалось определить IP. Проверьте вручную:${NC}"
+        echo "  curl -x http://localhost:3128 https://api.ipify.org"
     fi
-
-    echo ""
-    echo -e "${YELLOW}Роутинг через parent proxy (${PROXY_IP}):${NC}"
-    echo "  anthropic.com, openai.com, openrouter.ai, x.ai, googleapis.com"
-    echo ""
-    echo -e "${YELLOW}Остальной трафик идёт напрямую через IP сервера.${NC}"
     echo ""
 else
     echo -e "${RED}Ошибка: Squid не запустился${NC}"
