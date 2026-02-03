@@ -105,18 +105,20 @@ if sudo systemctl is-active --quiet squid; then
     echo -e "  Удалённо:   http://${SERVER_IP}:3128"
     echo ""
 
-    # Автоматическая проверка через httpbin
-    echo -e "${BLUE}Проверяю подключение...${NC}"
+    # Проверка что squid отвечает
+    echo -e "${BLUE}Проверяю работу Squid...${NC}"
 
-    RESULT=$(curl -s -x http://localhost:3128 --connect-timeout 10 https://httpbin.org/ip 2>/dev/null || echo "error")
-
-    if [[ "$RESULT" == *"origin"* ]]; then
-        PROXY_IP_RESULT=$(echo "$RESULT" | grep -o '"origin": "[^"]*"' | cut -d'"' -f4)
-        echo -e "${GREEN}Прокси работает! Ваш IP: ${PROXY_IP_RESULT}${NC}"
+    if curl -s -x http://localhost:3128 --connect-timeout 5 https://httpbin.org/ip >/dev/null 2>&1; then
+        echo -e "${GREEN}Squid работает корректно!${NC}"
     else
-        echo -e "${YELLOW}Не удалось проверить. Проверьте вручную:${NC}"
-        echo "  curl -x http://localhost:3128 https://httpbin.org/ip"
+        echo -e "${YELLOW}Внимание: проверьте подключение вручную${NC}"
     fi
+
+    echo ""
+    echo -e "${YELLOW}Роутинг через parent proxy (${PROXY_IP}):${NC}"
+    echo "  anthropic.com, openai.com, openrouter.ai, x.ai, googleapis.com"
+    echo ""
+    echo -e "${YELLOW}Остальной трафик идёт напрямую через IP сервера.${NC}"
     echo ""
 else
     echo -e "${RED}Ошибка: Squid не запустился${NC}"
