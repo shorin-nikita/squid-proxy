@@ -61,21 +61,30 @@ http_port 3128
 via on
 forwarded_for off
 
+# Источники
 acl localnet src 127.0.0.1/32
 acl localnet src 10.0.0.0/8
 acl localnet src 172.16.0.0/12
 acl localnet src 192.168.0.0/16
+
+# HTTPS порты и метод CONNECT
+acl SSL_ports port 443
+acl CONNECT method CONNECT
+
+# Домены для AI API
+acl to_proxy dstdomain .anthropic.com .claude.ai
+acl to_proxy dstdomain .openai.com
+acl to_proxy dstdomain .openrouter.ai
+acl to_proxy dstdomain .x.ai
+acl to_proxy dstdomain .googleapis.com
+
+# Разрешения
+http_access allow CONNECT SSL_ports localnet
 http_access allow localnet
 http_access deny all
 
+# Parent proxy
 cache_peer ${PROXY_IP} parent ${PROXY_PORT} 0 login=${PROXY_USER}:${PROXY_PASS} name=paidproxy
-
-acl to_proxy dstdomain .anthropic.com .claude.ai
-acl to_proxy dstdomain .openai.com .api.openai.com
-acl to_proxy dstdomain .openrouter.ai
-acl to_proxy dstdomain .x.ai api.x.ai
-acl to_proxy dstdomain .googleapis.com
-
 cache_peer_access paidproxy allow to_proxy
 cache_peer_access paidproxy deny all
 never_direct allow to_proxy
