@@ -32,11 +32,11 @@ echo -e "${YELLOW}Введите данные вашего parent proxy:${NC}"
 echo -e "${YELLOW}(Приобрести прокси рублями: https://ru.dashboard.proxy.market/?ref=E000154645)${NC}"
 echo ""
 
-# Запрос переменных
-read -p "IP адрес прокси: " PROXY_IP
-read -p "Порт прокси: " PROXY_PORT
-read -p "Логин: " PROXY_USER
-read -s -p "Пароль: " PROXY_PASS
+# Запрос переменных (читаем из /dev/tty для работы через curl | bash)
+read -p "IP адрес прокси: " PROXY_IP < /dev/tty
+read -p "Порт прокси: " PROXY_PORT < /dev/tty
+read -p "Логин: " PROXY_USER < /dev/tty
+read -s -p "Пароль: " PROXY_PASS < /dev/tty
 echo ""
 
 # Валидация
