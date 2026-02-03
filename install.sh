@@ -108,10 +108,8 @@ if sudo systemctl is-active --quiet squid; then
     # Проверка подключения к Anthropic API через parent proxy
     echo -e "${BLUE}Проверяю подключение к Anthropic API...${NC}"
 
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -x http://localhost:3128 --connect-timeout 10 https://api.anthropic.com 2>/dev/null || echo "000")
-
-    if [[ "$HTTP_CODE" != "000" && "$HTTP_CODE" != "403" ]]; then
-        echo -e "${GREEN}Прокси работает! Соединение с api.anthropic.com успешно (HTTP ${HTTP_CODE})${NC}"
+    if curl -s -o /dev/null -x http://localhost:3128 --connect-timeout 10 https://api.anthropic.com; then
+        echo -e "${GREEN}Прокси работает! Соединение с api.anthropic.com успешно${NC}"
     else
         echo -e "${YELLOW}Не удалось подключиться к Anthropic API. Проверьте вручную:${NC}"
         echo "  curl -I -x http://localhost:3128 https://api.anthropic.com"
