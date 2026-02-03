@@ -62,33 +62,30 @@ via on
 forwarded_for off
 
 # Источники
-acl localnet src 127.0.0.1/32
-acl localnet src 10.0.0.0/8
-acl localnet src 172.16.0.0/12
-acl localnet src 192.168.0.0/16
+acl localnet src all
 
-# HTTPS порты и метод CONNECT
+# HTTPS
 acl SSL_ports port 443
 acl CONNECT method CONNECT
 
-# Домены для AI API
-acl to_proxy dstdomain .anthropic.com .claude.ai
-acl to_proxy dstdomain .openai.com
-acl to_proxy dstdomain .openrouter.ai
-acl to_proxy dstdomain .x.ai
-acl to_proxy dstdomain .googleapis.com
+# Домены для AI API (через parent proxy)
+acl ai_domains dstdomain .anthropic.com
+acl ai_domains dstdomain .claude.ai
+acl ai_domains dstdomain .openai.com
+acl ai_domains dstdomain .openrouter.ai
+acl ai_domains dstdomain .x.ai
+acl ai_domains dstdomain .googleapis.com
 
-# Разрешения
-http_access allow CONNECT SSL_ports localnet
-http_access allow localnet
-http_access deny all
+# Разрешения доступа
+http_access allow CONNECT SSL_ports
+http_access allow all
 
-# Parent proxy
-cache_peer ${PROXY_IP} parent ${PROXY_PORT} 0 login=${PROXY_USER}:${PROXY_PASS} name=paidproxy
-cache_peer_access paidproxy allow to_proxy
-cache_peer_access paidproxy deny all
-never_direct allow to_proxy
-always_direct deny to_proxy
+# Parent proxy для AI доменов
+cache_peer ${PROXY_IP} parent ${PROXY_PORT} 0 login=${PROXY_USER}:${PROXY_PASS} name=upstream
+cache_peer_access upstream allow ai_domains
+cache_peer_access upstream deny all
+never_direct allow ai_domains
+always_direct deny ai_domains
 
 dns_nameservers 1.1.1.1 8.8.8.8
 EOF
