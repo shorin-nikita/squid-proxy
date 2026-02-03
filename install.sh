@@ -1,65 +1,65 @@
 #!/bin/bash
 set -e
 
-# Переключаем stdin на терминал для работы через curl | bash
+# Переключаем stdin на терминал
 exec 0</dev/tty
 
-# Цвета для вывода
-RED='\033[0;31m'
+# Цвета
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 echo -e "${BLUE}"
 echo "╔═══════════════════════════════════════════════════════════╗"
 echo "║           Установка Squid Proxy для AI API                ║"
-echo "║      Роутинг к OpenAI, Anthropic, Google AI и др.         ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
 # Проверка root
 if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}Ошибка: Запустите скрипт с правами root (sudo)${NC}"
-    echo "Используйте: curl -fsSL URL | sudo bash"
+    echo -e "${RED}Ошибка: Запустите с правами root (sudo)${NC}"
     exit 1
 fi
 
 # Проверка ОС
 if ! command -v apt-get &> /dev/null; then
-    echo -e "${RED}Ошибка: Скрипт поддерживает только Debian/Ubuntu${NC}"
+    echo -e "${RED}Ошибка: Только Debian/Ubuntu${NC}"
     exit 1
 fi
 
-echo -e "${YELLOW}Введите данные вашего parent proxy:${NC}"
-echo -e "${YELLOW}(Приобрести прокси рублями: https://ru.dashboard.proxy.market/?ref=E000154645)${NC}"
+echo -e "${YELLOW}Введите данные прокси в формате:${NC}"
+echo -e "${YELLOW}ip:port@login:password${NC}"
+echo -e "${YELLOW}Пример: 209.127.41.191:8000@user:pass${NC}"
 echo ""
 
-# Запрос переменных
-read -p "IP адрес прокси: " PROXY_IP
-read -p "Порт прокси: " PROXY_PORT
-read -p "Логин: " PROXY_USER
-read -sp "Пароль: " PROXY_PASS
-echo ""
+read -p "Прокси: " PROXY_STRING
 
-# Валидация
-if [ -z "$PROXY_IP" ] || [ -z "$PROXY_PORT" ] || [ -z "$PROXY_USER" ] || [ -z "$PROXY_PASS" ]; then
-    echo -e "${RED}Ошибка: Все поля обязательны для заполнения${NC}"
+# Парсинг строки ip:port@login:password
+if [[ ! "$PROXY_STRING" =~ ^([^:]+):([^@]+)@([^:]+):(.+)$ ]]; then
+    echo -e "${RED}Ошибка: Неверный формат. Используйте ip:port@login:password${NC}"
     exit 1
 fi
 
+PROXY_IP="${BASH_REMATCH[1]}"
+PROXY_PORT="${BASH_REMATCH[2]}"
+PROXY_USER="${BASH_REMATCH[3]}"
+PROXY_PASS="${BASH_REMATCH[4]}"
+
 echo ""
-echo -e "${BLUE}=== Установка Squid ===${NC}"
+echo -e "${BLUE}Устанавливаю Squid...${NC}"
+
+# Неинтерактивная установка
+export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y squid > /dev/null
+apt-get install -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" squid
 
-echo -e "${BLUE}=== Создание конфигурации ===${NC}"
+echo -e "${BLUE}Создаю конфигурацию...${NC}"
 
 mkdir -p /etc/squid
 
 cat > /etc/squid/squid.conf << EOF
-# Squid Proxy Configuration
-
 http_port 3128
 via on
 forwarded_for off
@@ -87,8 +87,9 @@ always_direct deny to_proxy
 dns_nameservers 1.1.1.1 8.8.8.8
 EOF
 
-echo -e "${BLUE}=== Запуск Squid ===${NC}"
-systemctl enable squid > /dev/null 2>&1
+echo -e "${BLUE}Запускаю Squid...${NC}"
+
+systemctl enable squid >/dev/null 2>&1
 systemctl restart squid
 
 sleep 2
@@ -97,18 +98,15 @@ if systemctl is-active --quiet squid; then
     echo ""
     echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
     echo -e "${GREEN}║         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА!                      ║${NC}"
-    echo -e "${GREEN}║   Squid прокси работает на порту 3128                     ║${NC}"
     echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${YELLOW}Команды:${NC}"
-    echo "  sudo systemctl status squid"
-    echo "  sudo systemctl restart squid"
+    echo -e "${YELLOW}Прокси работает на: http://localhost:3128${NC}"
     echo ""
-    echo -e "${YELLOW}Проверка:${NC}"
+    echo -e "${YELLOW}Проверка работы:${NC}"
     echo "  curl -x http://localhost:3128 https://api.anthropic.com"
     echo ""
 else
     echo -e "${RED}Ошибка: Squid не запустился${NC}"
-    echo "  sudo journalctl -u squid -n 50"
+    echo "Логи: sudo journalctl -u squid -n 20"
     exit 1
 fi
