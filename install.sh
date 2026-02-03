@@ -8,78 +8,62 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Функция для вывода в терминал (работает через curl | bash)
-print_tty() {
-    echo -e "$1" > /dev/tty
-}
-
-# Функция для запроса ввода (работает через curl | bash)
-prompt_input() {
-    local prompt="$1"
-    local answer=""
-    echo -n "$prompt" > /dev/tty
-    read -r answer < /dev/tty
-    echo "$answer"
-}
-
-# Функция для запроса пароля (скрытый ввод)
-prompt_secret() {
-    local prompt="$1"
-    local answer=""
-    echo -n "$prompt" > /dev/tty
-    read -rs answer < /dev/tty
-    echo "" > /dev/tty
-    echo "$answer"
-}
-
 # Проверка доступности терминала
 if [[ ! -r /dev/tty || ! -w /dev/tty ]]; then
     echo "Ошибка: Нет доступа к терминалу"
     exit 1
 fi
 
-print_tty "${BLUE}"
-print_tty "╔═══════════════════════════════════════════════════════════╗"
-print_tty "║           Установка Squid Proxy для AI API                ║"
-print_tty "║      Роутинг к OpenAI, Anthropic, Google AI и др.         ║"
-print_tty "╚═══════════════════════════════════════════════════════════╝"
-print_tty "${NC}"
+echo -e "${BLUE}" > /dev/tty
+echo "╔═══════════════════════════════════════════════════════════╗" > /dev/tty
+echo "║           Установка Squid Proxy для AI API                ║" > /dev/tty
+echo "║      Роутинг к OpenAI, Anthropic, Google AI и др.         ║" > /dev/tty
+echo "╚═══════════════════════════════════════════════════════════╝" > /dev/tty
+echo -e "${NC}" > /dev/tty
 
 # Проверка root
 if [ "$EUID" -ne 0 ]; then
-    print_tty "${RED}Ошибка: Запустите скрипт с правами root (sudo)${NC}"
-    print_tty "Используйте: curl -fsSL URL | sudo bash"
+    echo -e "${RED}Ошибка: Запустите скрипт с правами root (sudo)${NC}" > /dev/tty
+    echo "Используйте: curl -fsSL URL | sudo bash" > /dev/tty
     exit 1
 fi
 
 # Проверка ОС
 if ! command -v apt-get &> /dev/null; then
-    print_tty "${RED}Ошибка: Скрипт поддерживает только Debian/Ubuntu${NC}"
+    echo -e "${RED}Ошибка: Скрипт поддерживает только Debian/Ubuntu${NC}" > /dev/tty
     exit 1
 fi
 
-print_tty "${YELLOW}Введите данные вашего parent proxy:${NC}"
-print_tty "${YELLOW}(Приобрести прокси рублями: https://ru.dashboard.proxy.market/?ref=E000154645)${NC}"
-print_tty ""
+echo -e "${YELLOW}Введите данные вашего parent proxy:${NC}" > /dev/tty
+echo -e "${YELLOW}(Приобрести прокси рублями: https://ru.dashboard.proxy.market/?ref=E000154645)${NC}" > /dev/tty
+echo "" > /dev/tty
 
-# Запрос переменных
-PROXY_IP=$(prompt_input "IP адрес прокси: ")
-PROXY_PORT=$(prompt_input "Порт прокси: ")
-PROXY_USER=$(prompt_input "Логин: ")
-PROXY_PASS=$(prompt_secret "Пароль: ")
+# Запрос переменных напрямую через /dev/tty
+printf "IP адрес прокси: " > /dev/tty
+read -r PROXY_IP < /dev/tty
+
+printf "Порт прокси: " > /dev/tty
+read -r PROXY_PORT < /dev/tty
+
+printf "Логин: " > /dev/tty
+read -r PROXY_USER < /dev/tty
+
+printf "Пароль: " > /dev/tty
+read -rs PROXY_PASS < /dev/tty
+echo "" > /dev/tty
 
 # Валидация
 if [ -z "$PROXY_IP" ] || [ -z "$PROXY_PORT" ] || [ -z "$PROXY_USER" ] || [ -z "$PROXY_PASS" ]; then
-    print_tty "${RED}Ошибка: Все поля обязательны для заполнения${NC}"
+    echo -e "${RED}Ошибка: Все поля обязательны для заполнения${NC}" > /dev/tty
     exit 1
 fi
 
-print_tty ""
-print_tty "${BLUE}=== Установка Squid ===${NC}"
+echo "" > /dev/tty
+echo -e "${BLUE}=== Установка Squid ===${NC}" > /dev/tty
 apt-get update -qq
 apt-get install -y squid > /dev/null
 
-print_tty "${BLUE}=== Создание конфигурации ===${NC}"
+echo -e "${BLUE}=== Создание конфигурации ===${NC}" > /dev/tty
 
 # Создаём директорию если нет
 mkdir -p /etc/squid
@@ -121,7 +105,7 @@ always_direct deny to_proxy
 dns_nameservers 1.1.1.1 8.8.8.8
 EOF
 
-print_tty "${BLUE}=== Запуск Squid ===${NC}"
+echo -e "${BLUE}=== Запуск Squid ===${NC}" > /dev/tty
 systemctl enable squid > /dev/null 2>&1
 systemctl restart squid
 
@@ -130,28 +114,28 @@ sleep 2
 
 # Проверка статуса
 if systemctl is-active --quiet squid; then
-    print_tty ""
-    print_tty "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
-    print_tty "${GREEN}║                                                           ║${NC}"
-    print_tty "${GREEN}║         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА!                      ║${NC}"
-    print_tty "${GREEN}║                                                           ║${NC}"
-    print_tty "${GREEN}║   Squid прокси работает на порту 3128                     ║${NC}"
-    print_tty "${GREEN}║                                                           ║${NC}"
-    print_tty "${GREEN}║   Используйте: http://localhost:3128                      ║${NC}"
-    print_tty "${GREEN}║                                                           ║${NC}"
-    print_tty "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
-    print_tty ""
-    print_tty "${YELLOW}Полезные команды:${NC}"
-    print_tty "  sudo systemctl status squid   - статус сервиса"
-    print_tty "  sudo systemctl restart squid  - перезапуск"
-    print_tty "  sudo systemctl stop squid     - остановка"
-    print_tty "  sudo tail -f /var/log/squid/access.log - логи"
-    print_tty ""
-    print_tty "${YELLOW}Проверка работы:${NC}"
-    print_tty "  curl -x http://localhost:3128 https://api.anthropic.com"
-    print_tty ""
+    echo "" > /dev/tty
+    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}" > /dev/tty
+    echo -e "${GREEN}║                                                           ║${NC}" > /dev/tty
+    echo -e "${GREEN}║         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА!                      ║${NC}" > /dev/tty
+    echo -e "${GREEN}║                                                           ║${NC}" > /dev/tty
+    echo -e "${GREEN}║   Squid прокси работает на порту 3128                     ║${NC}" > /dev/tty
+    echo -e "${GREEN}║                                                           ║${NC}" > /dev/tty
+    echo -e "${GREEN}║   Используйте: http://localhost:3128                      ║${NC}" > /dev/tty
+    echo -e "${GREEN}║                                                           ║${NC}" > /dev/tty
+    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}" > /dev/tty
+    echo "" > /dev/tty
+    echo -e "${YELLOW}Полезные команды:${NC}" > /dev/tty
+    echo "  sudo systemctl status squid   - статус сервиса" > /dev/tty
+    echo "  sudo systemctl restart squid  - перезапуск" > /dev/tty
+    echo "  sudo systemctl stop squid     - остановка" > /dev/tty
+    echo "  sudo tail -f /var/log/squid/access.log - логи" > /dev/tty
+    echo "" > /dev/tty
+    echo -e "${YELLOW}Проверка работы:${NC}" > /dev/tty
+    echo "  curl -x http://localhost:3128 https://api.anthropic.com" > /dev/tty
+    echo "" > /dev/tty
 else
-    print_tty "${RED}Ошибка: Squid не запустился. Проверьте логи:${NC}"
-    print_tty "  sudo journalctl -u squid -n 50"
+    echo -e "${RED}Ошибка: Squid не запустился. Проверьте логи:${NC}" > /dev/tty
+    echo "  sudo journalctl -u squid -n 50" > /dev/tty
     exit 1
 fi
