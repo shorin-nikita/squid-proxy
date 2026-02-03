@@ -7,7 +7,7 @@ SCRIPT_URL="https://raw.githubusercontent.com/shorin-nikita/squid-proxy/main/ins
 if [ ! -t 0 ]; then
     TEMP_SCRIPT=$(mktemp)
     curl -fsSL "$SCRIPT_URL" -o "$TEMP_SCRIPT"
-    exec bash "$TEMP_SCRIPT" "$@"
+    exec bash "$TEMP_SCRIPT" "$@" < /dev/tty
 fi
 
 # Цвета для вывода
