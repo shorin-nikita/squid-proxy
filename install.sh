@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-# Переключаем stdin на терминал
-exec 0</dev/tty
-
 # Цвета
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -11,34 +8,34 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${BLUE}"
-echo "╔═══════════════════════════════════════════════════════════╗"
-echo "║           Установка Squid Proxy для AI API                ║"
-echo "╚═══════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
+echo -e "${BLUE}" >/dev/tty
+echo "╔═══════════════════════════════════════════════════════════╗" >/dev/tty
+echo "║           Установка Squid Proxy для AI API                ║" >/dev/tty
+echo "╚═══════════════════════════════════════════════════════════╝" >/dev/tty
+echo -e "${NC}" >/dev/tty
 
 # Проверка root
 if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}Ошибка: Запустите с правами root (sudo)${NC}"
+    echo -e "${RED}Ошибка: Запустите с правами root (sudo)${NC}" >/dev/tty
     exit 1
 fi
 
 # Проверка ОС
-if ! command -v apt-get &> /dev/null; then
-    echo -e "${RED}Ошибка: Только Debian/Ubuntu${NC}"
+if ! command -v apt-get &>/dev/null; then
+    echo -e "${RED}Ошибка: Только Debian/Ubuntu${NC}" >/dev/tty
     exit 1
 fi
 
-echo -e "${YELLOW}Введите данные прокси в формате:${NC}"
-echo -e "${YELLOW}ip:port@login:password${NC}"
-echo -e "${YELLOW}Пример: 209.127.41.191:8000@user:pass${NC}"
-echo ""
+echo -e "${YELLOW}Введите данные прокси в формате: ip:port@login:password${NC}" >/dev/tty
+echo -e "${YELLOW}Пример: 209.127.41.191:8000@user:pass${NC}" >/dev/tty
+echo "" >/dev/tty
 
-read -p "Прокси: " PROXY_STRING
+echo -n "Прокси: " >/dev/tty
+read PROXY_STRING </dev/tty
 
-# Парсинг строки ip:port@login:password
+# Парсинг ip:port@login:password
 if [[ ! "$PROXY_STRING" =~ ^([^:]+):([^@]+)@([^:]+):(.+)$ ]]; then
-    echo -e "${RED}Ошибка: Неверный формат. Используйте ip:port@login:password${NC}"
+    echo -e "${RED}Ошибка: Неверный формат${NC}" >/dev/tty
     exit 1
 fi
 
@@ -47,15 +44,14 @@ PROXY_PORT="${BASH_REMATCH[2]}"
 PROXY_USER="${BASH_REMATCH[3]}"
 PROXY_PASS="${BASH_REMATCH[4]}"
 
-echo ""
-echo -e "${BLUE}Устанавливаю Squid...${NC}"
+echo "" >/dev/tty
+echo -e "${BLUE}Устанавливаю Squid...${NC}" >/dev/tty
 
-# Неинтерактивная установка
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" squid
+apt-get update -qq 2>/dev/null
+apt-get install -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" squid 2>/dev/null
 
-echo -e "${BLUE}Создаю конфигурацию...${NC}"
+echo -e "${BLUE}Создаю конфигурацию...${NC}" >/dev/tty
 
 mkdir -p /etc/squid
 
@@ -87,26 +83,26 @@ always_direct deny to_proxy
 dns_nameservers 1.1.1.1 8.8.8.8
 EOF
 
-echo -e "${BLUE}Запускаю Squid...${NC}"
+echo -e "${BLUE}Запускаю Squid...${NC}" >/dev/tty
 
 systemctl enable squid >/dev/null 2>&1
-systemctl restart squid
+systemctl restart squid 2>/dev/null
 
 sleep 2
 
 if systemctl is-active --quiet squid; then
-    echo ""
-    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА!                      ║${NC}"
-    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    echo -e "${YELLOW}Прокси работает на: http://localhost:3128${NC}"
-    echo ""
-    echo -e "${YELLOW}Проверка работы:${NC}"
-    echo "  curl -x http://localhost:3128 https://api.anthropic.com"
-    echo ""
+    echo "" >/dev/tty
+    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}" >/dev/tty
+    echo -e "${GREEN}║         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА!                      ║${NC}" >/dev/tty
+    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}" >/dev/tty
+    echo "" >/dev/tty
+    echo -e "${YELLOW}Прокси работает: http://localhost:3128${NC}" >/dev/tty
+    echo "" >/dev/tty
+    echo -e "${YELLOW}Проверка:${NC}" >/dev/tty
+    echo "curl -x http://localhost:3128 https://api.anthropic.com" >/dev/tty
+    echo "" >/dev/tty
 else
-    echo -e "${RED}Ошибка: Squid не запустился${NC}"
-    echo "Логи: sudo journalctl -u squid -n 20"
+    echo -e "${RED}Ошибка: Squid не запустился${NC}" >/dev/tty
+    journalctl -u squid -n 10 --no-pager >/dev/tty 2>&1
     exit 1
 fi
