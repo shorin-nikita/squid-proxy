@@ -8,38 +8,26 @@
 - Весь трафик к AI сервисам (OpenAI, Anthropic, OpenRouter, xAI, Google AI) идёт через ваш parent proxy
 - Остальной трафик идёт напрямую
 
-## Установка
+## Приобрести прокси рублями можно [здесь](https://ru.dashboard.proxy.market/?ref=E000154645)
+
+## Установка одной командой
 
 ```bash
-# Клонируем репозиторий
-git clone https://github.com/shorin-nikita/squid-proxy.git
-cd squid-proxy
-
-# Создаём конфиг с прокси
-cp proxies.conf.example proxies.conf
-nano proxies.conf
-
-# Устанавливаем и запускаем
-sudo ./install.sh
+curl -fsSL https://raw.githubusercontent.com/shorin-nikita/squid-proxy/main/install.sh | sudo bash
 ```
 
-## Настройка прокси
+Скрипт запросит:
+- IP адрес прокси
+- Порт прокси
+- Логин
+- Пароль
 
-Отредактируйте `proxies.conf`:
-
-```bash
-PROXY_IP="1.2.3.4"
-PROXY_PORT="8080"
-PROXY_USER="myuser"
-PROXY_PASS="mypassword"
-```
+После ввода данных Squid автоматически установится и запустится.
 
 ## Команды
 
 | Команда | Описание |
 |---------|----------|
-| `sudo ./install.sh` | Первая установка Squid |
-| `sudo ./setup.sh` | Обновить конфиг после смены прокси |
 | `sudo systemctl status squid` | Статус сервиса |
 | `sudo systemctl restart squid` | Перезапуск |
 | `sudo systemctl stop squid` | Остановка |
@@ -63,4 +51,18 @@ sudo tail -f /var/log/squid/access.log
 - `.x.ai`, `api.x.ai`
 - `.googleapis.com`
 
-Изменить список: отредактируйте `squid.conf.template` → запустите `sudo ./setup.sh`
+## Изменение конфигурации
+
+Конфиг находится в `/etc/squid/squid.conf`. После изменений:
+
+```bash
+sudo systemctl restart squid
+```
+
+## Переустановка
+
+Для изменения данных прокси просто запустите установку заново:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/shorin-nikita/squid-proxy/main/install.sh | sudo bash
+```

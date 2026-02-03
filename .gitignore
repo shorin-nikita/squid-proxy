@@ -1,1 +1,2 @@
-proxies.conf
+# OS files
+.DS_Store
