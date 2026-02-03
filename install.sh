@@ -105,15 +105,17 @@ if sudo systemctl is-active --quiet squid; then
     echo -e "  Удалённо:   http://${SERVER_IP}:3128"
     echo ""
 
-    # Автоматическая проверка
-    echo -e "${BLUE}Проверяю подключение к API...${NC}"
+    # Автоматическая проверка через httpbin
+    echo -e "${BLUE}Проверяю подключение...${NC}"
 
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -x http://localhost:3128 --connect-timeout 10 https://api.anthropic.com 2>/dev/null || echo "000")
+    RESULT=$(curl -s -x http://localhost:3128 --connect-timeout 10 https://httpbin.org/ip 2>/dev/null || echo "error")
 
-    if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "403" ]; then
-        echo -e "${GREEN}Прокси работает! (HTTP $HTTP_CODE)${NC}"
+    if [[ "$RESULT" == *"origin"* ]]; then
+        PROXY_IP_RESULT=$(echo "$RESULT" | grep -o '"origin": "[^"]*"' | cut -d'"' -f4)
+        echo -e "${GREEN}Прокси работает! Ваш IP: ${PROXY_IP_RESULT}${NC}"
     else
-        echo -e "${YELLOW}Внимание: получен код $HTTP_CODE (возможно проблема с parent proxy)${NC}"
+        echo -e "${YELLOW}Не удалось проверить. Проверьте вручную:${NC}"
+        echo "  curl -x http://localhost:3128 https://httpbin.org/ip"
     fi
     echo ""
 else
