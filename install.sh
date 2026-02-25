@@ -46,11 +46,29 @@ PROXY_USER="${BASH_REMATCH[3]}"
 PROXY_PASS="${BASH_REMATCH[4]}"
 
 echo ""
-echo -e "${BLUE}Устанавливаю Squid...${NC}"
+echo -e "${BLUE}Подготовка системы...${NC}"
+
+# Снятие блокировок APT (unattended-upgrades)
+if pgrep -x unattended-upgr >/dev/null 2>&1; then
+    echo -e "${YELLOW}Обнаружен процесс unattended-upgrades, останавливаю...${NC}"
+    sudo killall unattended-upgr >/dev/null 2>&1 || true
+    sleep 2
+fi
+sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1
+sudo dpkg --configure -a >/dev/null 2>&1 || true
+
+echo -e "${BLUE}Устанавливаю Squid и npm...${NC}"
 
 # Установка с sudo (полностью тихая)
 sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" squid >/dev/null 2>&1
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" squid npm >/dev/null 2>&1
+
+# Проверка npm
+if command -v npm &>/dev/null; then
+    echo -e "${GREEN}npm $(npm --version) установлен${NC}"
+else
+    echo -e "${YELLOW}npm не удалось установить, OpenCLAW потребует ручной установки npm${NC}"
+fi
 
 echo -e "${BLUE}Создаю конфигурацию...${NC}"
 
@@ -120,6 +138,12 @@ if sudo systemctl is-active --quiet squid; then
         echo -e "${YELLOW}Не удалось подключиться к Anthropic API. Проверьте вручную:${NC}"
         echo "  curl -I -x http://localhost:3128 https://api.anthropic.com"
     fi
+
+    echo ""
+    echo -e "${BLUE}Установленные версии:${NC}"
+    echo -e "  Squid:  $(squid -v 2>&1 | head -1 | awk '{print $4}')"
+    echo -e "  npm:    $(npm --version 2>/dev/null || echo 'не установлен')"
+    echo -e "  Node.js: $(node --version 2>/dev/null || echo 'не установлен')"
     echo ""
 else
     echo -e "${RED}Ошибка: Squid не запустился${NC}"
